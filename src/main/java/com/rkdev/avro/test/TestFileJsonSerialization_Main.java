@@ -3,7 +3,10 @@ package com.rkdev.avro.test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,10 +20,7 @@ import org.apache.avro.generic.GenericRecord;
 import com.rkdev.avro.User;
 
 
-public class TestSpeed_Main {
-
-	//Loop serialization and deserialization these many number of times 
-	public static int LOOP_COUNT=100;
+public class TestFileJsonSerialization_Main {
 
 	static byte[] image = null;
 	static{
@@ -53,32 +53,36 @@ public class TestSpeed_Main {
 	}
 
 	public static void TryGeneric(Schema schema) throws IOException{
+		File file = new File("test_generic_serialization.avro");
+		try(FileOutputStream outstream = new FileOutputStream(file)){
+			IGenericAvroSerializer serializer = GenericAvroDataSerializer.getJsonSerializer(schema,outstream);
+			//Create Record 1
+			serializer.append(createGenericUser(schema));
+			serializer.flush();
+		}
 
-		ByteArrayOutputStream outstream = new ByteArrayOutputStream();
-		IGenericAvroSerializer serializer = GenericAvroDataSerializer.getJsonSerializer(schema,outstream);
-
-		//Create Record 1
-		serializer.append(createGenericUser(schema));
-		serializer.flush();
-
-		IGenericAvroDeserializer deserializer = GenericAvroDataDeserializer.getJsonDeserializer(schema);
-		GenericRecord record = deserializer.read(new ByteArrayInputStream(outstream.toByteArray()));
-		System.out.println("Deserialize Generic - "+record.get("name"));	
+		try(FileInputStream fileInputStream = new FileInputStream(file)){
+			IGenericAvroDeserializer deserializer = GenericAvroDataDeserializer.getJsonDeserializer(schema);
+			GenericRecord record = deserializer.read(fileInputStream);
+			System.out.println("Deserialize Generic - "+record.get("name"));
+		}
 	}
 
 	public static void TrySpecific(Schema schema) throws IOException{
 
-		ByteArrayOutputStream outstream = new ByteArrayOutputStream();
-
+		File file = new File("test_specific_serialization.avro");
+		try(FileOutputStream outstream = new FileOutputStream(file)){
 		ISpecificAvroSerializer<User> serializer = SpecificAvroDataSerializer.getJsonSerializer(schema,outstream);
-
 		//Create Record 1
 		serializer.append(createUser(schema));
 		serializer.flush();
+		}
 
+		try(FileInputStream fileInputStream = new FileInputStream(file)){
 		ISpecificAvroDeserializer<User> deserializer = SpecificAvroDataDeserializer.getJsonDeserializer(schema);
-		User record = deserializer.read(new ByteArrayInputStream(outstream.toByteArray()));
+		User record = deserializer.read(fileInputStream);
 		System.out.println("Deserialize Specific - "+record.getName());	
+		}
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -87,24 +91,11 @@ public class TestSpeed_Main {
 		Schema schema = new Schema.Parser().parse(schemaFile);
 
 		try{
-			long s1 = System.nanoTime();
-			for(int i=0;i<LOOP_COUNT;i++){
-				TrySpecific(schema);
-			}
-			long e1 = System.nanoTime();
-			
-			long s2 = System.nanoTime();
-			for(int i=0;i<LOOP_COUNT;i++){
-				TryGeneric(schema);
-			}
-			System.out.println("Time taken with code generated serialization is "+ Long.toString( ((e1 - s1))/(1000*1000) ) + " mili seconds");
-			System.out.println("Time taken with  generic way is "+ Long.toString( ((System.nanoTime() - s2))/(1000*1000) ) + " mili seconds");
-
+			TrySpecific(schema);
+			TryGeneric(schema);
 		}catch(Exception e){
 			e.printStackTrace();
 			System.out.println(e.getLocalizedMessage());
 		}
-
-
 	}
 }
