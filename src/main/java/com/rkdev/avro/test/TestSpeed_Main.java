@@ -5,10 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -55,13 +53,13 @@ public class TestSpeed_Main {
 	public static void TryGeneric(Schema schema) throws IOException{
 
 		ByteArrayOutputStream outstream = new ByteArrayOutputStream();
-		IGenericAvroSerializer serializer = GenericAvroDataSerializer.getJsonSerializer(schema,outstream);
+		IGenericAvroSerializer serializer = GenericAvroDataSerializer.getBinarySerializer(schema,outstream);
 
 		//Create Record 1
 		serializer.append(createGenericUser(schema));
 		serializer.flush();
 
-		IGenericAvroDeserializer deserializer = GenericAvroDataDeserializer.getJsonDeserializer(schema);
+		IGenericAvroDeserializer deserializer = GenericAvroDataDeserializer.getBinaryDeserializer(schema);
 		GenericRecord record = deserializer.read(new ByteArrayInputStream(outstream.toByteArray()));
 		System.out.println("Deserialize Generic - "+record.get("name"));	
 	}
@@ -70,13 +68,13 @@ public class TestSpeed_Main {
 
 		ByteArrayOutputStream outstream = new ByteArrayOutputStream();
 
-		ISpecificAvroSerializer<User> serializer = SpecificAvroDataSerializer.getJsonSerializer(schema,outstream);
+		ISpecificAvroSerializer<User> serializer = SpecificAvroDataSerializer.getBinarySerializer(schema,outstream);
 
 		//Create Record 1
 		serializer.append(createUser(schema));
 		serializer.flush();
 
-		ISpecificAvroDeserializer<User> deserializer = SpecificAvroDataDeserializer.getJsonDeserializer(schema);
+		ISpecificAvroDeserializer<User> deserializer = SpecificAvroDataDeserializer.getBinaryDeserializer(schema);
 		User record = deserializer.read(new ByteArrayInputStream(outstream.toByteArray()));
 		System.out.println("Deserialize Specific - "+record.getName());	
 	}
